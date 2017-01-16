@@ -9,7 +9,7 @@ function chimpReport() {
 
  var API_KEY = "xxxxxxxxxxxx";
 
- var ss = SpreadsheetApp.getActiveSpreadsheet();
+   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getActiveSheet();  
   
   var dc = API_KEY.slice(-3);
@@ -30,6 +30,10 @@ function chimpReport() {
   var REPORT_START_DATE = new Date(start);
   
   var id_col = sheet.getRange("A2:A").getValues();
+  var id_col_list = [];
+  for (var l=0; l< id_col.length; l++){
+    id_col_list.push(id_col[l][0].toString());
+  }
   var campaigns;
   var campaignIDs = [];
   
@@ -47,34 +51,36 @@ function chimpReport() {
         
         // if campaign hasn't yet been run, create a report
         if (runReport) {
-          var report = [c.id, c.settings.subject_line, c.send_time, c.emails_sent, c.report_summary.opens, 
+          var report = [c.id.toString(), c.settings.subject_line, c.send_time, c.emails_sent, c.report_summary.opens, 
                       c.report_summary.unique_opens, c.report_summary.clicks, c.report_summary.open_rate,
                       c.report_summary.click_rate, c.archive_url, c.settings.folder_id];
-         
+          
          var newRow = true;
          
          // does the campaign's id match any others in the dataset?
-         for (n=0;n<id_col.length;n++) {
-            if (id_col[n][0].toString() === c.id.toString()){
+          var inRow = id_col_list.indexOf(id)
+          if (inRow != -1) {
               newRow = false;
-              var row = 2 + n
-              break;
-            }
+              var row = inRow + 2;
           }
           if (newRow===true) {
             sheet.appendRow(report)
+            var range = sheet.getRange("A2:A").getLastRow();
+            var cell = sheet.getRange("A" + (range).toString())
+            cell.setNumberFormat("@").setValue(id)
           } else {
             var range = sheet.getRange("A"+row.toString()+":K"+row.toString())
             range.setValues([report])
           }
           
-          campaignIDs.push(c.id);
+          campaignIDs.push(id);
         }
       }
     }
     
     var newDATE = REPORT_START_DATE.setDate(REPORT_START_DATE.getDate() + 3);
     REPORT_START_DATE = new Date(newDATE);
+    
     
     }
   }
