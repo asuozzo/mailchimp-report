@@ -28,40 +28,53 @@ function chimpReport() {
   today = new Date();
   start = new Date().setDate(today.getDate()-60);
   var REPORT_START_DATE = new Date(start);
-  Logger.log(REPORT_START_DATE)
   
+  var id_col = sheet.getRange("A2:A").getValues();
   var campaigns;
+  var campaignIDs = [];
   
   while (REPORT_START_DATE<REPORT_END_DATE) {
     campaigns = apiCall(REPORT_START_DATE, REPORT_END_DATE)["campaigns"];
-    id_col = sheet.getRange("A2:A").getValues();
     
     for (var i=0; i< campaigns.length; i++){
       if (campaigns[i].send_time){
         var c = campaigns[i];
-        var report = [c.id, c.settings.subject_line, c.send_time, c.emails_sent, c.report_summary.opens, 
+        var runReport = true;
+        // if campaign has already been pulled this time around, don't run the report again.
+        if (campaignIDs.indexOf(c.id) != -1) {
+          runReport = false;
+        };
+        
+        // if campaign hasn't yet been run, create a report
+        if (runReport) {
+          var report = [c.id, c.settings.subject_line, c.send_time, c.emails_sent, c.report_summary.opens, 
                       c.report_summary.unique_opens, c.report_summary.clicks, c.report_summary.open_rate,
                       c.report_summary.click_rate, c.archive_url, c.settings.folder_id];
-        var newRow = true;
-        for (n=0;n<id_col.length;n++) {
-          if (id_col[n][0].toString() === c.id.toString()){
-            newRow = false;
-            var row = 2 + n
-            break;
+         
+         var newRow = true;
+         
+         // does the campaign's id match any others in the dataset?
+         for (n=0;n<id_col.length;n++) {
+            if (id_col[n][0].toString() === c.id.toString()){
+              newRow = false;
+              var row = 2 + n
+              break;
+            }
           }
-        }
-        if (newRow===true) {
-          sheet.appendRow(report)
-        } else {
-          var range = sheet.getRange("A"+row.toString()+":K"+row.toString())
-          range.setValues([report])
+          if (newRow===true) {
+            sheet.appendRow(report)
+          } else {
+            var range = sheet.getRange("A"+row.toString()+":K"+row.toString())
+            range.setValues([report])
+          }
+          
+          campaignIDs.push(c.id);
         }
       }
     }
-    Logger.log(REPORT_START_DATE)
+    
     var newDATE = REPORT_START_DATE.setDate(REPORT_START_DATE.getDate() + 3);
     REPORT_START_DATE = new Date(newDATE);
-    Logger.log(REPORT_START_DATE)
     
     }
   }
